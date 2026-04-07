@@ -1,4 +1,4 @@
-# 🌾 Dados Fazenda – Pipeline de Big Data
+# 🌾 Dados Fazenda – Solução de Big Data para Análise e Monitoramento de Propriedades Rurais
 
 **Projeto Integrador IV-A** | PUC Goiás – Big Data e Inteligência Artificial  
 **Aluno:** Gustavo Nolasco Chaves  
