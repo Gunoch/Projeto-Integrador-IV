@@ -21,9 +21,11 @@ A arquitetura segue o padrão **Medallion (Bronze → Silver → Gold)** sobre G
 [SICAR / SIGEF / IBAMA]
         │
         ▼
-[Cloud Pub/Sub] ──streaming──▶ [Cloud Dataflow] ──▶ [BigQuery Silver]
+[Cloud Pub/Sub] ──streaming──▶ [Cloud Functions] ──▶ [BigQuery Silver]
         │                                                     │
 [Cloud Scheduler]──batch──▶ [Cloud Functions] ──▶ [GCS Bronze]    │
+                                                    │             │
+                                              [Dataproc/Spark] ──▶│
                                                               ▼
                                                     [BigQuery Gold]
                                                               │
@@ -39,15 +41,14 @@ A arquitetura segue o padrão **Medallion (Bronze → Silver → Gold)** sobre G
 │   ├── batch/          # Ingestão diária SICAR + SIGEF (Cloud Functions)
 │   └── streaming/      # Ingestão em tempo real de embargos (Pub/Sub)
 ├── transform/
-│   ├── beam/           # Pipelines Apache Beam (processamento distribuído)
+│   ├── beam/           # Pipeline Apache Beam (referência)
+│   ├── spark/          # Pipeline PySpark/Dataproc (Bronze → Silver)
 │   └── dbt/            # Transformações SQL Silver → Gold (dbt)
 ├── functions/
 │   ├── alert_watcher/  # Monitora embargos e dispara alertas WhatsApp
 │   └── farm_scan/      # Gera relatório mensal PDF (Farm Scan)
-├── infra/
-│   └── terraform/      # Infraestrutura como código (GCP)
-├── dashboard/          # Configuração Looker Studio
-└── docs/               # Diagrama de arquitetura e documentação técnica
+└── infra/
+    └── terraform/      # Infraestrutura como código (GCP)
 ```
 
 ---
@@ -92,15 +93,13 @@ cd ingestion/batch
 python ingest_sicar.py --project SEU_PROJECT_ID --bucket SEU_BUCKET
 ```
 
-### 5. Executar pipeline de transformação Beam
+### 5. Executar pipeline de transformação Spark (Bronze → Silver)
 
 ```bash
-cd transform/beam
-python pipeline_silver.py \
-  --project SEU_PROJECT_ID \
-  --runner DataflowRunner \
-  --region us-central1 \
-  --temp_location gs://SEU_BUCKET/temp
+gcloud dataproc jobs submit pyspark transform/spark/pipeline_silver.py \
+  --cluster=dados-fazenda-cluster \
+  --region=us-central1 \
+  -- --project SEU_PROJECT_ID --bucket SEU_BUCKET --dataset dados_fazenda_silver
 ```
 
 ### 6. Executar transformações dbt (Silver → Gold)
@@ -124,6 +123,7 @@ dbt run --profiles-dir .
 ## 🔗 Referências
 
 - [BigQuery Docs](https://cloud.google.com/bigquery/docs)
-- [Apache Beam Docs](https://beam.apache.org/documentation)
+- [Apache Spark Docs](https://spark.apache.org/docs/latest/)
+- [Cloud Dataproc Docs](https://cloud.google.com/dataproc/docs)
 - [dbt Docs](https://docs.getdbt.com)
 - [Dados Fazenda](https://dadosfazenda.com.br)
